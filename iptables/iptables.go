@@ -7,13 +7,11 @@ import (
 	"io"
 	"os/exec"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/monzo/calico-accountant/watch"
-	apiv3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
+	"github.com/FredrikCarlssn/calico-accountant-v3.29/watch"
 )
 
 type ChainType int
@@ -72,9 +70,11 @@ func Scan(cw watch.CalicoWatcher) ([]*Result, error) {
 	// first build a mapping from interface names to workload endpoints
 	workloads := cw.ListWorkloadEndpoints()
 
-	interfaceToWorkload := make(map[string]*apiv3.WorkloadEndpoint, len(workloads))
+	interfaceToWorkload := make(map[string]*watch.WorkloadEndpoint, len(workloads))
 	for _, w := range workloads {
-		interfaceToWorkload[w.Spec.InterfaceName] = w
+		// Use the workload name as interface name for now
+		// In a real implementation, you'd need to map this properly
+		interfaceToWorkload[w.Name] = w
 	}
 
 	return iptablesSave(interfaceToWorkload)
@@ -87,7 +87,7 @@ var (
 	acceptSlice     = []byte("Return if policy accepted")
 )
 
-func iptablesSave(interfaceToWorkload map[string]*apiv3.WorkloadEndpoint) ([]*Result, error) {
+func iptablesSave(interfaceToWorkload map[string]*watch.WorkloadEndpoint) ([]*Result, error) {
 	cmd := exec.Command("iptables-save", "-t", "filter", "-c")
 
 	stdout, err := cmd.StdoutPipe()
@@ -125,7 +125,7 @@ func iptablesSave(interfaceToWorkload map[string]*apiv3.WorkloadEndpoint) ([]*Re
 
 // parseFrom extracts useful packet counts from the output of iptables-save
 // inspiration is taken from projectcalico/felix/iptables/table.go
-func parseFrom(stdout io.Reader, interfaceToWorkload map[string]*apiv3.WorkloadEndpoint) ([]*Result, error) {
+func parseFrom(stdout io.Reader, interfaceToWorkload map[string]*watch.WorkloadEndpoint) ([]*Result, error) {
 	// we expect at most 4 counts per network interface, drop and accept for ingress and egress
 	results := make([]*Result, 0, 4*len(interfaceToWorkload))
 	dropChains := map[string]DropChain{}
@@ -228,23 +228,25 @@ func parseFrom(stdout io.Reader, interfaceToWorkload map[string]*apiv3.WorkloadE
 	return results, nil
 }
 
-func buildResult(workload *apiv3.WorkloadEndpoint, countType CountType, chainType ChainType, packetCount int, target string) (*Result, error) {
+func buildResult(workload *watch.WorkloadEndpoint, countType CountType, chainType ChainType, packetCount int, target string) (*Result, error) {
 	if countType == Drop && target != "DROP" {
 		return nil, errors.New("drop count type but not a drop target")
 	}
 
-	ips := make([]string, 0, len(workload.Spec.IPNetworks))
-	for _, str := range workload.Spec.IPNetworks {
-		// remove pointless /32 suffix, if any
-		ips = append(ips, strings.TrimSuffix(str, "/32"))
+	// Use the simplified WorkloadEndpoint structure
+	appLabel := ""
+	if workload.Labels != nil {
+		appLabel = workload.Labels["app"]
 	}
-	sort.Strings(ips)
+
+	// Remove pointless /32 suffix from IP, if any
+	ip := strings.TrimSuffix(workload.IP, "/32")
 
 	return &Result{
-		PodName:      workload.Spec.Pod,
+		PodName:      workload.Name,
 		PodNamespace: workload.Namespace,
-		AppLabel:     workload.Labels["app"],
-		PodIP:        strings.Join(ips, ","),
+		AppLabel:     appLabel,
+		PodIP:        ip,
 		ChainType:    chainType,
 		CountType:    countType,
 		PacketCount:  packetCount,

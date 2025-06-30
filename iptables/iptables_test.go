@@ -5,22 +5,17 @@ import (
 	"strings"
 	"testing"
 
-	apiv3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
+	"github.com/FredrikCarlssn/calico-accountant-v3.29/watch"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var interfaceToWorkload = map[string]*apiv3.WorkloadEndpoint{
+var interfaceToWorkload = map[string]*watch.WorkloadEndpoint{
 	"cali5125b8e5d77": {
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: "ns",
-			Labels: map[string]string{
-				"app": "bar",
-			},
-		},
-		Spec: apiv3.WorkloadEndpointSpec{
-			Pod:        "foo",
-			IPNetworks: []string{"127.0.0.1/32"},
+		Name:      "foo",
+		Namespace: "ns",
+		IP:        "127.0.0.1",
+		Labels: map[string]string{
+			"app": "bar",
 		},
 	},
 }
@@ -28,7 +23,7 @@ var interfaceToWorkload = map[string]*apiv3.WorkloadEndpoint{
 func TestParseFrom(t *testing.T) {
 	type args struct {
 		stdout              io.Reader
-		interfaceToWorkload map[string]*apiv3.WorkloadEndpoint
+		interfaceToWorkload map[string]*watch.WorkloadEndpoint
 	}
 	tests := []struct {
 		name    string
