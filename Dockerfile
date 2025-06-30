@@ -1,10 +1,13 @@
-FROM golang:1.11.5 as builder
-WORKDIR $GOPATH/src/github.com/monzo/calico-accountant
-COPY . $GOPATH/src/github.com/monzo/calico-accountant
-RUN make build
+FROM golang:1.22-alpine as builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o calico-accountant .
 
-FROM alpine
-LABEL maintainer="Jack Kleeman <jack@monzo.com>"
+FROM alpine:latest
+LABEL maintainer="Fredrik Carlsson"
 WORKDIR /root/
-RUN apk --update add iptables
-COPY --from=builder /go/src/github.com/monzo/calico-accountant/calico-accountant /calico-accountant
+RUN apk --no-cache add iptables
+COPY --from=builder /app/calico-accountant /calico-accountant
+ENTRYPOINT ["/calico-accountant"]
