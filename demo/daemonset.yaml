@@ -20,22 +20,15 @@ spec:
            - "-logtostderr=true"
            - "-v=2"
           env:
-          - name: ETCD_ENDPOINTS
-            valueFrom:
-              configMapKeyRef:
-                name: calico-config
-                key: etcd_endpoints
-          # On EKS/GKE with Calico using control plane etcd, 
-          # instead of ETCD_ENDPOINTS, use:
-#         - name: DATASTORE_TYPE
-#           value: "kubernetes"
-          - name: NODE_NAME
+          - name: DATASTORE_TYPE
+            value: "kubernetes"
+          - name: NODENAME
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
           - name: METRICS_SERVER_PORT
             value: "9009"
-          image: monzo/calico-accountant:v0.1.1 
+          image: ghcr.io/fredrikcarlssn/calico-accountant-v3.29:latest 
           name: calico-accountant
           securityContext:
             privileged: true

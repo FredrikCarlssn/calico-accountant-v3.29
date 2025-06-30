@@ -29,6 +29,7 @@ rules:
     - blockaffinities
     - ipamhandles
     - ipamconfigs
+    - workloadendpoints
   verbs:
     - get
     - list
@@ -36,6 +37,23 @@ rules:
 - apiGroups: ["networking.k8s.io"]
   resources:
     - networkpolicies
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups: ["projectcalico.org"]
+  resources:
+    - workloadendpoints
+    - networkpolicies
+    - globalnetworkpolicies
+    - networksets
+    - globalnetworksets
+    - hostendpoints
+    - ippools
+    - felixconfigurations
+    - bgpconfigurations
+    - bgppeers
+    - clusterinformations
   verbs:
     - get
     - list
