@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/golang/glog"
-	"github.com/monzo/calico-accountant/iptables"
-	"github.com/monzo/calico-accountant/watch"
+	"github.com/FredrikCarlssn/calico-accountant-v3.29/iptables"
+	"github.com/FredrikCarlssn/calico-accountant-v3.29/watch"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
